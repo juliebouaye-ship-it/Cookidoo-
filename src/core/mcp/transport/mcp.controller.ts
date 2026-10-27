@@ -6,19 +6,22 @@ import {
   Post,
   Req,
   Res,
+  UseGuards,
 } from '@nestjs/common';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { Request, Response } from 'express';
 
 import { McpServerFactory } from '../application/services/mcp-server.factory';
+import { McpAuthGuard } from './mcp-auth.guard';
 
 /**
  * MCP transport entry point (Streamable HTTP, stateless).
  *
- * Exposed at `POST /api/mcp`. A new MCP server + transport is created per
- * request (no session state). The server acts as the single Cookidoo account
- * configured via environment variables, so there is no per-request auth to
- * enforce here — credentials live in the infrastructure client.
+ * Exposed at `POST /api/mcp` (token in an `Authorization: Bearer` header) and
+ * `POST /api/mcp/<token>` (token in the URL, for clients that only take a URL).
+ * A new MCP server + transport is created per request (no session state).
+ * Every POST goes through {@link McpAuthGuard}: the server acts as a real
+ * Cookidoo account, so it must never be reachable without the shared secret.
  */
 @Controller('mcp')
 export class McpController {
@@ -27,6 +30,7 @@ export class McpController {
   constructor(private readonly mcpServerFactory: McpServerFactory) {}
 
   @Post()
+  @UseGuards(McpAuthGuard)
   async handleRequest(
     @Req() req: Request,
     @Res() res: Response,
@@ -48,6 +52,15 @@ export class McpController {
 
     await server.connect(transport);
     await transport.handleRequest(req, res, req.body);
+  }
+
+  @Post(':token')
+  @UseGuards(McpAuthGuard)
+  async handleRequestWithPathToken(
+    @Req() req: Request,
+    @Res() res: Response,
+  ): Promise<void> {
+    await this.handleRequest(req, res);
   }
 
   @Get()

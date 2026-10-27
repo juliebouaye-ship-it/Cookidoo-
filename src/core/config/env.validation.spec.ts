@@ -7,6 +7,7 @@ function validEnv(
     NODE_ENV: 'development',
     COOKIDOO_EMAIL: 'user@example.com',
     COOKIDOO_PASSWORD: 'secret',
+    MCP_AUTH_TOKEN: 'a'.repeat(64),
     ...overrides,
   };
 }
@@ -26,6 +27,29 @@ describe('validateEnv', () => {
         }),
       ),
     ).not.toThrow();
+  });
+
+  it('rejects a missing MCP_AUTH_TOKEN unless auth is explicitly disabled', () => {
+    expect(() => validateEnv(validEnv({ MCP_AUTH_TOKEN: undefined }))).toThrow(
+      /MCP_AUTH_TOKEN is required/,
+    );
+    expect(() =>
+      validateEnv(
+        validEnv({ MCP_AUTH_TOKEN: undefined, MCP_AUTH_DISABLED: 'true' }),
+      ),
+    ).not.toThrow();
+  });
+
+  it('rejects a short MCP_AUTH_TOKEN', () => {
+    expect(() => validateEnv(validEnv({ MCP_AUTH_TOKEN: 'short' }))).toThrow(
+      /at least 32 characters/,
+    );
+  });
+
+  it('rejects an MCP_AUTH_TOKEN that is not URL-safe', () => {
+    expect(() =>
+      validateEnv(validEnv({ MCP_AUTH_TOKEN: `${'a'.repeat(40)}/../x` })),
+    ).toThrow(/may only contain/);
   });
 
   it('rejects a missing email', () => {

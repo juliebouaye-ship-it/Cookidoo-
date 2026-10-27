@@ -1,8 +1,13 @@
 import { Module } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { CqrsModule } from '@nestjs/cqrs';
 
 import { COOKIDOO_CLIENT } from './domain/interfaces/cookidoo-client.interface';
 import { CookidooHttpClient } from './infrastructure/cookidoo/cookidoo-http.client';
+import {
+  CalendarHistoryCache,
+  DEFAULT_CALENDAR_CACHE_FILE,
+} from './infrastructure/calendar-cache/calendar-history.cache';
 
 // Query handlers
 import { AccountFindUserInfoQueryHandler } from './application/queries/account-find-user-info/account-find-user-info.handler';
@@ -12,6 +17,7 @@ import { RecipeSearchQueryHandler } from './application/queries/recipe-search/re
 import { ShoppingListFindRecipesQueryHandler } from './application/queries/shopping-list-find-recipes/shopping-list-find-recipes.handler';
 import { ShoppingListFindIngredientItemsQueryHandler } from './application/queries/shopping-list-find-ingredient-items/shopping-list-find-ingredient-items.handler';
 import { ShoppingListFindAdditionalItemsQueryHandler } from './application/queries/shopping-list-find-additional-items/shopping-list-find-additional-items.handler';
+import { CalendarFindHistoryQueryHandler } from './application/queries/calendar-find-history/calendar-find-history.handler';
 import { CalendarFindWeekRecipesQueryHandler } from './application/queries/calendar-find-week-recipes/calendar-find-week-recipes.handler';
 import { CustomRecipeFindAllQueryHandler } from './application/queries/custom-recipe-find-all/custom-recipe-find-all.handler';
 import { CustomRecipeFindDetailsQueryHandler } from './application/queries/custom-recipe-find-details/custom-recipe-find-details.handler';
@@ -56,14 +62,13 @@ import { ShoppingListAddRecipeIngredientsMcpTool } from './transport/mcp/tools/s
 import { ShoppingListRemoveRecipeIngredientsMcpTool } from './transport/mcp/tools/shopping-list-remove-recipe-ingredients.tool';
 import { ShoppingListAddAdditionalItemsMcpTool } from './transport/mcp/tools/shopping-list-add-additional-items.tool';
 import { ShoppingListRemoveAdditionalItemsMcpTool } from './transport/mcp/tools/shopping-list-remove-additional-items.tool';
-import { ShoppingListClearMcpTool } from './transport/mcp/tools/shopping-list-clear.tool';
+import { CalendarGetHistoryMcpTool } from './transport/mcp/tools/calendar-get-history.tool';
 import { CalendarGetWeekMcpTool } from './transport/mcp/tools/calendar-get-week.tool';
 import { CalendarAddRecipesMcpTool } from './transport/mcp/tools/calendar-add-recipes.tool';
 import { CalendarRemoveRecipeMcpTool } from './transport/mcp/tools/calendar-remove-recipe.tool';
 import { CustomRecipeListMcpTool } from './transport/mcp/tools/custom-recipe-list.tool';
 import { CustomRecipeGetDetailsMcpTool } from './transport/mcp/tools/custom-recipe-get-details.tool';
 import { CustomRecipeAddMcpTool } from './transport/mcp/tools/custom-recipe-add.tool';
-import { CustomRecipeRemoveMcpTool } from './transport/mcp/tools/custom-recipe-remove.tool';
 import { ShoppingListMarkIngredientItemsMcpTool } from './transport/mcp/tools/shopping-list-mark-ingredient-items.tool';
 import { ShoppingListMarkAdditionalItemsMcpTool } from './transport/mcp/tools/shopping-list-mark-additional-items.tool';
 import { ShoppingListEditAdditionalItemsMcpTool } from './transport/mcp/tools/shopping-list-edit-additional-items.tool';
@@ -74,13 +79,10 @@ import { CalendarRemoveCustomRecipeMcpTool } from './transport/mcp/tools/calenda
 import { ManagedCollectionCountMcpTool } from './transport/mcp/tools/managed-collection-count.tool';
 import { ManagedCollectionListMcpTool } from './transport/mcp/tools/managed-collection-list.tool';
 import { ManagedCollectionAddMcpTool } from './transport/mcp/tools/managed-collection-add.tool';
-import { ManagedCollectionRemoveMcpTool } from './transport/mcp/tools/managed-collection-remove.tool';
 import { CustomCollectionCountMcpTool } from './transport/mcp/tools/custom-collection-count.tool';
 import { CustomCollectionListMcpTool } from './transport/mcp/tools/custom-collection-list.tool';
 import { CustomCollectionAddMcpTool } from './transport/mcp/tools/custom-collection-add.tool';
-import { CustomCollectionRemoveMcpTool } from './transport/mcp/tools/custom-collection-remove.tool';
 import { CustomCollectionAddRecipesMcpTool } from './transport/mcp/tools/custom-collection-add-recipes.tool';
-import { CustomCollectionRemoveRecipeMcpTool } from './transport/mcp/tools/custom-collection-remove-recipe.tool';
 
 const QUERY_HANDLERS = [
   AccountFindUserInfoQueryHandler,
@@ -91,6 +93,7 @@ const QUERY_HANDLERS = [
   ShoppingListFindIngredientItemsQueryHandler,
   ShoppingListFindAdditionalItemsQueryHandler,
   CalendarFindWeekRecipesQueryHandler,
+  CalendarFindHistoryQueryHandler,
   CustomRecipeFindAllQueryHandler,
   CustomRecipeFindDetailsQueryHandler,
   ManagedCollectionCountQueryHandler,
@@ -126,8 +129,24 @@ const COMMAND_HANDLERS = [
 
 const INFRASTRUCTURE = [
   { provide: COOKIDOO_CLIENT, useClass: CookidooHttpClient },
+  {
+    provide: CalendarHistoryCache,
+    inject: [ConfigService],
+    useFactory: (config: ConfigService) =>
+      new CalendarHistoryCache(
+        config.get<string>('CALENDAR_CACHE_FILE')?.trim() ||
+          DEFAULT_CALENDAR_CACHE_FILE,
+      ),
+  },
 ];
 
+/**
+ * Destructive tools (clear the shopping list, delete custom recipes, delete or
+ * unsubscribe collections, remove recipes from a collection) are deliberately
+ * NOT exposed: a meal-planning agent never needs them, and collections are the
+ * "what we like" signal the agent relies on. Their commands/handlers are kept
+ * so upstream merges stay easy.
+ */
 const MCP_TOOLS = [
   AccountGetUserInfoMcpTool,
   SubscriptionGetActiveMcpTool,
@@ -140,14 +159,13 @@ const MCP_TOOLS = [
   ShoppingListRemoveRecipeIngredientsMcpTool,
   ShoppingListAddAdditionalItemsMcpTool,
   ShoppingListRemoveAdditionalItemsMcpTool,
-  ShoppingListClearMcpTool,
   CalendarGetWeekMcpTool,
+  CalendarGetHistoryMcpTool,
   CalendarAddRecipesMcpTool,
   CalendarRemoveRecipeMcpTool,
   CustomRecipeListMcpTool,
   CustomRecipeGetDetailsMcpTool,
   CustomRecipeAddMcpTool,
-  CustomRecipeRemoveMcpTool,
   ShoppingListMarkIngredientItemsMcpTool,
   ShoppingListMarkAdditionalItemsMcpTool,
   ShoppingListEditAdditionalItemsMcpTool,
@@ -158,13 +176,10 @@ const MCP_TOOLS = [
   ManagedCollectionCountMcpTool,
   ManagedCollectionListMcpTool,
   ManagedCollectionAddMcpTool,
-  ManagedCollectionRemoveMcpTool,
   CustomCollectionCountMcpTool,
   CustomCollectionListMcpTool,
   CustomCollectionAddMcpTool,
-  CustomCollectionRemoveMcpTool,
   CustomCollectionAddRecipesMcpTool,
-  CustomCollectionRemoveRecipeMcpTool,
 ];
 
 @Module({

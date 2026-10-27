@@ -3,6 +3,7 @@ import { DiscoveryModule } from '@nestjs/core';
 
 import { McpServerFactory } from './application/services/mcp-server.factory';
 import { McpToolRegistry } from './application/services/mcp-tool-registry.service';
+import { McpAuthGuard } from './transport/mcp-auth.guard';
 import { McpController } from './transport/mcp.controller';
 
 /**
@@ -16,6 +17,6 @@ import { McpController } from './transport/mcp.controller';
 @Module({
   imports: [DiscoveryModule],
   controllers: [McpController],
-  providers: [McpToolRegistry, McpServerFactory],
+  providers: [McpToolRegistry, McpServerFactory, McpAuthGuard],
 })
 export class McpModule {}

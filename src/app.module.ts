@@ -4,6 +4,7 @@ import { CqrsModule } from '@nestjs/cqrs';
 
 import { cookidooConfig } from '@core/config/cookidoo.config';
 import { validateEnv } from '@core/config/env.validation';
+import { mcpAuthConfig } from '@core/config/mcp-auth.config';
 import { otelConfig } from '@core/config/otel.config';
 import { HealthModule } from '@core/health/health.module';
 import { McpModule } from '@core/mcp/mcp.module';
@@ -17,7 +18,7 @@ import { LoggingModule } from './support/logging/logging.module';
     ConfigModule.forRoot({
       isGlobal: true,
       validate: validateEnv,
-      load: [cookidooConfig, otelConfig],
+      load: [cookidooConfig, mcpAuthConfig, otelConfig],
       cache: true,
     }),
     LoggingModule,

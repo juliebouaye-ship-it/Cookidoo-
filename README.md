@@ -1,5 +1,24 @@
 # cookidoo-mcp
 
+> ## 🍲 Fork maison : planification des menus
+>
+> Différences avec l'original ([sisques-labs/cookidoo-mcp](https://github.com/sisques-labs/cookidoo-mcp)) :
+>
+> - 🇫🇷 **Cookidoo France par défaut** (`fr` / `fr-FR` / `cookidoo.fr`), y compris l'en-tête `Accept-Language` de la connexion.
+> - 🔐 **Endpoint protégé** : le serveur refuse de démarrer sans `MCP_AUTH_TOKEN` (`openssl rand -hex 32`).
+>   Le token passe en `Authorization: Bearer <token>` ou dans l'URL : `https://<hôte>/api/mcp/<token>`.
+> - ✂️ **Outils destructeurs retirés** : vider la liste de courses, supprimer une recette perso,
+>   supprimer/désabonner une collection, retirer une recette d'une collection.
+> - 📅 **Historique** : `cookidoo_get_calendar_history` agrège N semaines du planning (classement par fréquence).
+>   Les semaines terminées sont mises en cache dans `CALENDAR_CACHE_FILE` et ne sont plus jamais redemandées à Cookidoo.
+>   Les appels en direct sont espacés d'une seconde.
+> - 🐳 `docker-compose.yml` : port lié à `127.0.0.1`, volume `./data` (session + cache), `TZ=Europe/Paris`.
+> - 🤖 Instructions prêtes à l'emploi pour l'agent : [`docs/agent-planning-fr.md`](docs/agent-planning-fr.md).
+>
+> Démarrage : `cp .env.example .env`, remplir identifiants + token, puis `docker compose up -d --build`.
+> Pour un connecteur claude.ai, exposer le port via un tunnel HTTPS (ex. Cloudflare Tunnel) et ajouter
+> l'URL `https://<hôte>/api/mcp/<token>`.
+
 An [MCP](https://modelcontextprotocol.io) server for **Cookidoo**, built with
 NestJS. It exposes a Cookidoo account (recipes, shopping list, subscription) to
 AI tools (Claude, IDEs, agents, …) as a set of MCP tools.
@@ -116,9 +135,11 @@ docker run --rm -p 3000:3000 --env-file .env cookidoo-mcp
 Or pass variables directly:
 
 ```bash
-docker run --rm -p 3000:3000 \
+docker run --rm -p 127.0.0.1:3000:3000 \
   -e COOKIDOO_EMAIL=your@email.com \
   -e COOKIDOO_PASSWORD=your-password \
+  -e MCP_AUTH_TOKEN=$(openssl rand -hex 32) \
+  -v "$PWD/data:/app/data" \
   cookidoo-mcp
 ```
 
@@ -162,13 +183,13 @@ Authentication is handled by the NestJS process via `COOKIDOO_EMAIL` /
 | `cookidoo_remove_recipe_ingredients` | command | Remove recipes' ingredients from the list |
 | `cookidoo_add_additional_items` | command | Add free-text items to the list |
 | `cookidoo_remove_additional_items` | command | Remove free-text items from the list |
-| `cookidoo_clear_shopping_list` | command | Empty the shopping list |
 | `cookidoo_mark_ingredient_items` | command | Mark ingredient items as bought/owned |
 | `cookidoo_mark_additional_items` | command | Mark free-text items as bought/owned |
 | `cookidoo_edit_additional_items` | command | Rename free-text items |
 | `cookidoo_add_custom_recipe_ingredients` | command | Add custom recipes' ingredients to the list |
 | `cookidoo_remove_custom_recipe_ingredients` | command | Remove custom recipes' ingredients from the list |
 | `cookidoo_get_calendar_week` | query | Recipes planned on the meal-planner calendar for a week |
+| `cookidoo_get_calendar_history` | query | Planning history over N weeks (frequency ranking + days), past weeks cached on disk |
 | `cookidoo_add_recipes_to_calendar` | command | Add recipes to the meal-planner calendar on a day |
 | `cookidoo_remove_recipe_from_calendar` | command | Remove a recipe from the meal-planner calendar on a day |
 | `cookidoo_add_custom_recipes_to_calendar` | command | Add custom recipes to the calendar on a day |
@@ -176,17 +197,13 @@ Authentication is handled by the NestJS process via `COOKIDOO_EMAIL` /
 | `cookidoo_list_custom_recipes` | query | All user-created (custom) recipes |
 | `cookidoo_get_custom_recipe` | query | Full details of a custom recipe by id |
 | `cookidoo_add_custom_recipe` | command | Create a custom recipe from an existing recipe |
-| `cookidoo_remove_custom_recipe` | command | Delete a custom recipe |
 | `cookidoo_count_managed_collections` | query | Total managed collections / pages |
 | `cookidoo_get_managed_collections` | query | A page of managed collections |
 | `cookidoo_add_managed_collection` | command | Subscribe to a managed collection |
-| `cookidoo_remove_managed_collection` | command | Unsubscribe from a managed collection |
 | `cookidoo_count_custom_collections` | query | Total custom collections / pages |
 | `cookidoo_get_custom_collections` | query | A page of custom collections |
 | `cookidoo_add_custom_collection` | command | Create a custom collection |
-| `cookidoo_remove_custom_collection` | command | Delete a custom collection |
 | `cookidoo_add_recipes_to_custom_collection` | command | Add recipes to a custom collection |
-| `cookidoo_remove_recipe_from_custom_collection` | command | Remove a recipe from a custom collection |
 
 ### Adding a tool
 

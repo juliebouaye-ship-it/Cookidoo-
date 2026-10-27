@@ -27,3 +27,25 @@ export const calendarRemoveRecipeSchema = {
   day: daySchema.describe('ISO date (YYYY-MM-DD) the recipe is planned on'),
   recipeId: z.string().min(1).describe('Id of the recipe to remove'),
 };
+
+/** Input schema for the `cookidoo_get_calendar_history` MCP tool. */
+export const calendarHistorySchema = {
+  weeks: z
+    .number()
+    .int()
+    .min(1)
+    .max(26)
+    .default(12)
+    .describe(
+      'How many weeks of planning to look back over, counting the current week (1-26, default 12)',
+    ),
+  until: daySchema
+    .optional()
+    .describe('Last day to include (ISO date). Defaults to today'),
+  refresh: z
+    .boolean()
+    .default(false)
+    .describe(
+      'Re-fetch past weeks from Cookidoo instead of the local cache. Only use if the user says past planning was changed',
+    ),
+};

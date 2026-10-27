@@ -100,11 +100,19 @@ const BROWSER_ACCEPT =
   'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,' +
   'image/webp,*/*;q=0.8';
 
+/**
+ * Builds an `Accept-Language` header matching the configured market, so the
+ * login looks like a local browser (e.g. `fr-FR,fr;q=0.9,en;q=0.8`).
+ */
+export function acceptLanguageFor(language: string): string {
+  const primary = language.split('-')[0];
+  return `${language},${primary};q=0.9,en;q=0.8`;
+}
+
 // Headers a real Chrome sends on a navigation. cidaas exposes no CSRF form
 // field, so the login POST is accepted based on Origin/Referer/Sec-Fetch — a
 // bare POST just re-renders the login page.
 const BROWSER_NAV_HEADERS: Record<string, string> = {
-  'Accept-Language': 'es-ES,es;q=0.9,en;q=0.8',
   'Upgrade-Insecure-Requests': '1',
   'Sec-Fetch-Dest': 'document',
   'Sec-Fetch-Mode': 'navigate',
@@ -362,6 +370,7 @@ export class CookidooHttpClient implements ICookidooClient {
         headers: {
           Accept: BROWSER_ACCEPT,
           ...BROWSER_NAV_HEADERS,
+          'Accept-Language': acceptLanguageFor(this.localization.language),
           'Sec-Fetch-Site': 'none',
         },
       });
@@ -398,6 +407,7 @@ export class CookidooHttpClient implements ICookidooClient {
           headers: {
             Accept: BROWSER_ACCEPT,
             ...BROWSER_NAV_HEADERS,
+            'Accept-Language': acceptLanguageFor(this.localization.language),
             'Sec-Fetch-Site': 'same-origin',
             'Content-Type': 'application/x-www-form-urlencoded',
             Origin: new URL(CIAM_LOGIN_SRV_URL).origin,

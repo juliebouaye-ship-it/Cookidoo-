@@ -1,0 +1,16 @@
+# Usage: cp .env.example .env (fill it in), then `docker compose up -d --build`.
+services:
+  cookidoo-mcp:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      TZ: Europe/Paris
+      COOKIDOO_COOKIE_FILE: /app/data/.cookidoo-session.json
+      CALENDAR_CACHE_FILE: /app/data/calendar-history.json
+    volumes:
+      - ./data:/app/data
+    # Bound to localhost only: expose it to the internet through a tunnel
+    # (e.g. Cloudflare Tunnel) rather than opening the port.
+    ports:
+      - "127.0.0.1:3000:3000"
