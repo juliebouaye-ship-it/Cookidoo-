@@ -2,6 +2,7 @@
 rem Demarre le serveur Cookidoo MCP pour Claude Desktop.
 rem Laisser cette fenetre ouverte pendant lutilisation, la fermer pour arreter.
 title Cookidoo MCP
+chcp 65001 >nul
 cd /d "%~dp0..\.."
 if not exist "dist\main.js" (
   echo Le serveur nest pas compile. Lance dabord :
