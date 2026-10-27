@@ -21,6 +21,7 @@ function formatZodIssues(issues: z.ZodIssue[]): string {
 const baseEnvSchema = z.object({
   NODE_ENV: z.string().optional(),
   PORT: z.coerce.number().int().positive().optional(),
+  HOST: z.string().trim().min(1).optional(),
 
   COOKIDOO_EMAIL: z
     .string()

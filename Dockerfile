@@ -35,7 +35,7 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 ENV PORT=3000
-ENV HOSTNAME=0.0.0.0
+ENV HOST=0.0.0.0
 ENV HUSKY=0
 # Dates of the meal planner are computed in the household's time zone.
 ENV TZ=Europe/Paris

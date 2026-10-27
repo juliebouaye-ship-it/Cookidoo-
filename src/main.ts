@@ -23,9 +23,13 @@ async function bootstrap() {
   );
 
   const port = process.env.PORT ?? 3000;
-  await app.listen(port);
+  // Localhost only by default: the server drives a real Cookidoo account and
+  // must not be reachable from the local network. Docker sets HOST=0.0.0.0
+  // (the port mapping in docker-compose.yml stays bound to 127.0.0.1).
+  const host = process.env.HOST?.trim() || '127.0.0.1';
+  await app.listen(port, host);
   Logger.log(
-    `Cookidoo MCP server listening on http://localhost:${port}/api/mcp`,
+    `Cookidoo MCP server listening on http://${host}:${port}/api/mcp`,
     'Bootstrap',
   );
 }

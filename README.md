@@ -15,7 +15,26 @@
 > - 🐳 `docker-compose.yml` : port lié à `127.0.0.1`, volume `./data` (session + cache), `TZ=Europe/Paris`.
 > - 🤖 Instructions prêtes à l'emploi pour l'agent : [`docs/agent-planning-fr.md`](docs/agent-planning-fr.md).
 >
-> Démarrage : `cp .env.example .env`, remplir identifiants + token, puis `docker compose up -d --build`.
+> ### 🪟 Installation sur Windows (Claude Desktop, sans Docker)
+>
+> Prérequis : Git et Node.js 22+ (`winget install OpenJS.NodeJS.LTS`). Dans PowerShell :
+>
+> ```powershell
+> git clone https://github.com/juliebouaye-ship-it/Cookidoo-.git "$HOME\Documents\Cookidoo"
+> cd "$HOME\Documents\Cookidoo"
+> powershell -ExecutionPolicy Bypass -File scripts\windows\setup.ps1
+> ```
+>
+> Le script demande l'email et le mot de passe Cookidoo (saisis localement, jamais affichés), génère le token,
+> compile le serveur, ajoute `cookidoo` à la config de Claude Desktop (avec sauvegarde) et crée un raccourci
+> **« Cookidoo (menus) »** sur le Bureau. À chaque utilisation : double-clic sur le raccourci, puis Claude Desktop.
+> Après un `git pull`, relancer le script pour recompiler.
+>
+> Le serveur n'écoute que sur `127.0.0.1` par défaut (`HOST=0.0.0.0` dans `.env` pour l'ouvrir au réseau local).
+>
+> ### 🐳 Avec Docker
+>
+> `cp .env.example .env`, remplir identifiants + token, puis `docker compose up -d --build`.
 > Pour un connecteur claude.ai, exposer le port via un tunnel HTTPS (ex. Cloudflare Tunnel) et ajouter
 > l'URL `https://<hôte>/api/mcp/<token>`.
 
