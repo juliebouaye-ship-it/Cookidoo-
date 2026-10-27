@@ -11,9 +11,11 @@
 #   4. branche Claude Desktop sur le serveur (sauvegarde de la config existante)
 #   5. crée un raccourci « Cookidoo (menus) » sur le Bureau
 #
-# Option : -Reset pour ressaisir les identifiants et régénérer le token.
+# Options :
+#   -Reset       ressaisir les identifiants et régénérer le token
+#   -ConfigOnly  ne refaire que le branchement de Claude Desktop (sans réinstaller)
 
-param([switch]$Reset)
+param([switch]$Reset, [switch]$ConfigOnly)
 
 $ErrorActionPreference = 'Stop'
 $MCP_REMOTE_VERSION = '0.14.3'
@@ -108,6 +110,7 @@ if ((Test-Path $EnvFile) -and $token -and -not $Reset) {
 New-Item -ItemType Directory -Force -Path (Join-Path $RepoRoot 'data') | Out-Null
 
 # ---------------------------------------------------------------------------
+if (-not $ConfigOnly) {
 Write-Step 'Installation des dépendances et compilation (quelques minutes la première fois)'
 Push-Location $RepoRoot
 try {
@@ -118,9 +121,17 @@ try {
   if ($LASTEXITCODE -ne 0) { Fail 'La compilation a échoué.' }
 } finally { Pop-Location }
 Write-Ok 'Serveur compilé (dist\main.js).'
+}
 
 # ---------------------------------------------------------------------------
 Write-Step 'Branchement de Claude Desktop'
+# Claude Desktop réécrit sa config en quittant : s'il est ouvert pendant la
+# modification, il efface le bloc « cookidoo ». Il doit donc être fermé.
+while (Get-Process -Name 'Claude' -ErrorAction SilentlyContinue) {
+  Write-Host '    Claude Desktop est ouvert. Quitte-le complètement :' -ForegroundColor Yellow
+  Write-Host '    icône près de l''horloge > clic droit > Quitter (ou Gestionnaire des tâches > Claude > Fin de tâche).' -ForegroundColor Yellow
+  Read-Host '    Puis appuie sur Entrée pour continuer' | Out-Null
+}
 $configDirs = @(Join-Path $env:APPDATA 'Claude')
 # Version Microsoft Store de Claude : config dans un dossier virtualisé.
 Get-ChildItem (Join-Path $env:LOCALAPPDATA 'Packages') -Directory -Filter 'Claude_*' -ErrorAction SilentlyContinue |
@@ -179,5 +190,5 @@ try {
 
 Write-Host "`nC'est prêt !" -ForegroundColor Green
 Write-Host '  1. Double-clique sur « Cookidoo (menus) » sur le Bureau (laisse la fenêtre ouverte).'
-Write-Host '  2. Quitte complètement Claude Desktop (icône près de l''horloge > Quitter), puis rouvre-le.'
+Write-Host '  2. Ouvre Claude Desktop : « cookidoo » apparaît dans Paramètres > Développeur.'
 Write-Host '  3. Dans Claude : « Lis notre historique Cookidoo et propose-nous les dîners de la semaine ».'
